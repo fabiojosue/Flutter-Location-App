@@ -81,16 +81,6 @@ lib/
 
 ---
 
-## How It Works
-
-1. On launch, asks for location permission.
-2. Displays map centered on first geofence.
-3. Press **"Start Tracking"** to begin tracking.
-4. App checks geofence containment every 5 seconds.
-5. Press **"Summary"** to stop tracking and see results.
-
----
-
 ## Setup
 
 ### 1. Clone the repo
