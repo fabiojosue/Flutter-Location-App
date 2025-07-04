@@ -22,6 +22,23 @@ This app tracks the user's time spent in predefined geofenced locations (e.g., H
 
 ---
 
+## Preview
+
+### Main Screen
+![Main Screen](assets/screenshots/s1.png)
+![Main Screen2](assets/screenshots/s5.png)
+
+### Clocking In
+![Clocking In](assets/screenshots/s2.png)
+
+### Clocking Out
+![Clocking Out](assets/screenshots/s3.png)
+
+### Summary Screen
+![Summary Screen](assets/screenshots/s4.png)
+
+---
+
 ## Features
 
 - ✅ Live location tracking (with permissions)
@@ -134,4 +151,4 @@ DEBUG=true
 
 ## Author
 
-Fabio Calderón — *Software Engineer & Mobile Enthusiast*
+Fabio — *Software Engineer*

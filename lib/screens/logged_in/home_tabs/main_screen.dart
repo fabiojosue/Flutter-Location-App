@@ -4,7 +4,7 @@ import '../../../models/geo_fence.dart';
 import '../../../providers/geofence_provider.dart';
 import '../../../providers/location_provider.dart';
 import '../../../widgets/map_view.dart';
-import 'summary_screen.dart';
+import '../../../widgets/custom_dialogs.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,19 +19,29 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
 
     Future.microtask(() async {
-      final locationProvider =
-          Provider.of<LocationProvider>(context, listen: false);
-      final geofenceProvider =
-          Provider.of<GeofenceProvider>(context, listen: false);
+      final locationProvider = Provider.of<LocationProvider>(
+        context,
+        listen: false,
+      );
+      final geofenceProvider = Provider.of<GeofenceProvider>(
+        context,
+        listen: false,
+      );
 
       await locationProvider.init();
+      geofenceProvider.init(locationProvider);
       geofenceProvider.startTracking();
+      geofenceProvider.startGeofenceMonitoring();
+
+      final loc = locationProvider.currentLocation;
+      debugPrint(
+        'INIT COMPLETE — Location: lat: ${loc?.latitude}, lng: ${loc?.longitude}',
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final locationProvider = Provider.of<LocationProvider>(context);
     final geofenceProvider = Provider.of<GeofenceProvider>(context);
 
     return Stack(
@@ -54,14 +64,32 @@ class _MainScreenState extends State<MainScreen> {
                   geofenceProvider.currentFence != null
                       ? 'Inside: ${geofenceProvider.currentFence!.name}'
                       : 'Not in any geofence',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  locationProvider.currentLocation != null
-                      ? 'Lat: ${locationProvider.currentLocation!.latitude!.toStringAsFixed(5)} | Lng: ${locationProvider.currentLocation!.longitude!.toStringAsFixed(5)}'
-                      : 'Location loading...',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                Consumer<LocationProvider>(
+                  builder: (context, locationProvider, _) {
+                    final location = locationProvider.currentLocation;
+                    if (location != null) {
+                      debugPrint(
+                        'UI RENDER — Location loaded: lat: ${location.latitude}, lng: ${location.longitude}',
+                      );
+                    }
+                    return Text(
+                      location != null
+                          ? 'Lat: ${location.latitude!.toStringAsFixed(5)} | Lng: ${location.longitude!.toStringAsFixed(5)}'
+                          : 'Location loading...',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -78,9 +106,7 @@ class _MainScreenState extends State<MainScreen> {
                 onPressed: () {
                   geofenceProvider.startTracking();
                   geofenceProvider.startGeofenceMonitoring();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Tracking started')),
-                  );
+                  showClockInDialog(context);
                 },
                 child: const Text('Clock In'),
               ),
@@ -88,12 +114,13 @@ class _MainScreenState extends State<MainScreen> {
                 onPressed: () {
                   geofenceProvider.stopTracking();
                   geofenceProvider.stopGeofenceMonitoring();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Tracking stopped')),
-                  );
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SummaryScreen()),
-                  );
+                  final durations = geofenceProvider.locationDurations;
+
+                  if (durations.isEmpty) {
+                    showNoTimeTrackedDialog(context);
+                  } else {
+                    showSummaryDialog(context: context, durations: durations);
+                  }
                 },
                 child: const Text('Clock Out'),
               ),

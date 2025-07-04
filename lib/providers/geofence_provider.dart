@@ -14,68 +14,86 @@ class GeofenceProvider with ChangeNotifier {
 
   GeoFence? _currentFence;
   GeoFence? get currentFence => _currentFence;
-
   Map<String, Duration> get locationDurations => _locationDurations;
 
+  LocationProvider? _locationProvider;
+
+  void init(LocationProvider provider) {
+    _locationProvider = provider;
+  }
+
   void startTracking() {
+    if (_locationProvider == null) return;
+
     _trackingTimer?.cancel();
+    _checkAndTrack();
     _trackingTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      final current = LocationProvider().currentLocation;
-      if (current == null) return;
-
-      for (final fence in _geoFences) {
-        final inside = _isInsideFence(
-          current.latitude!,
-          current.longitude!,
-          fence.latitude,
-          fence.longitude,
-          fence.radius,
-        );
-
-        final now = DateTime.now();
-        final alreadyInside = _entryTimes.containsKey(fence.name);
-
-        if (inside && !alreadyInside) {
-          _entryTimes[fence.name] = now;
-        } else if (!inside && alreadyInside) {
-          final entry = _entryTimes.remove(fence.name)!;
-          final duration = now.difference(entry);
-          _locationDurations[fence.name] =
-              (_locationDurations[fence.name] ?? Duration.zero) + duration;
-          notifyListeners();
-        }
-      }
+      _checkAndTrack();
     });
   }
 
-  void startGeofenceMonitoring() {
-    _geofenceCheckTimer?.cancel();
-    _geofenceCheckTimer =
-        Timer.periodic(const Duration(seconds: 10), (_) async {
-      final current = LocationProvider().currentLocation;
-      if (current == null) return;
+  void _checkAndTrack() {
+    final current = _locationProvider?.currentLocation;
+    if (current == null) return;
 
-      for (final fence in _geoFences) {
-        final inside = _isInsideFence(
-          current.latitude!,
-          current.longitude!,
-          fence.latitude,
-          fence.longitude,
-          fence.radius,
-        );
+    for (final fence in _geoFences) {
+      final inside = _isInsideFence(
+        current.latitude!,
+        current.longitude!,
+        fence.latitude,
+        fence.longitude,
+        fence.radius,
+      );
 
-        if (inside && _currentFence?.name != fence.name) {
-          _currentFence = fence;
-          debugPrint('Entered fence: ${fence.name}');
-          notifyListeners();
-          break;
-        } else if (!inside && _currentFence?.name == fence.name) {
-          debugPrint('Exited fence: ${fence.name}');
-          _currentFence = null;
-          notifyListeners();
-        }
+      final now = DateTime.now();
+      final alreadyInside = _entryTimes.containsKey(fence.name);
+
+      if (inside && !alreadyInside) {
+        _entryTimes[fence.name] = now;
+      } else if (!inside && alreadyInside) {
+        final entry = _entryTimes.remove(fence.name)!;
+        final duration = now.difference(entry);
+        _locationDurations[fence.name] =
+            (_locationDurations[fence.name] ?? Duration.zero) + duration;
+        notifyListeners();
       }
+    }
+  }
+
+  void startGeofenceMonitoring() {
+    if (_locationProvider == null) return;
+
+    _geofenceCheckTimer?.cancel();
+
+    _checkFenceStatus();
+
+    _geofenceCheckTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _checkFenceStatus();
     });
+  }
+
+  void _checkFenceStatus() {
+    final current = _locationProvider?.currentLocation;
+    if (current == null) return;
+
+    for (final fence in _geoFences) {
+      final inside = _isInsideFence(
+        current.latitude!,
+        current.longitude!,
+        fence.latitude,
+        fence.longitude,
+        fence.radius,
+      );
+
+      if (inside && _currentFence?.name != fence.name) {
+        _currentFence = fence;
+        notifyListeners();
+        break;
+      } else if (!inside && _currentFence?.name == fence.name) {
+        _currentFence = null;
+        notifyListeners();
+      }
+    }
   }
 
   void stopTracking() {
@@ -88,6 +106,7 @@ class GeofenceProvider with ChangeNotifier {
       _locationDurations[fenceName] =
           (_locationDurations[fenceName] ?? Duration.zero) + duration;
     });
+
     _entryTimes.clear();
     notifyListeners();
   }
@@ -112,7 +131,7 @@ class GeofenceProvider with ChangeNotifier {
     double lon2,
     double radius,
   ) {
-    const earthRadius = 6371000; // in meters
+    const earthRadius = 6371000;
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
     final a = (sin(dLat / 2) * sin(dLat / 2)) +

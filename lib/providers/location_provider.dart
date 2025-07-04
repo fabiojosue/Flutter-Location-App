@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:location/location.dart' as loc;
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:flutter/foundation.dart';
@@ -11,9 +9,7 @@ import '../models/geo_fence.dart';
 
 class LocationProvider with ChangeNotifier {
   static final LocationProvider _singleton = LocationProvider._internal();
-
   factory LocationProvider() => _singleton;
-
   LocationProvider._internal();
 
   final location = loc.Location();
@@ -21,7 +17,6 @@ class LocationProvider with ChangeNotifier {
   Location? _currentLocation;
 
   bool _acceptedPermission = false;
-
   StreamSubscription<loc.LocationData>? _locationSubscription;
   GeoFence? _currentFence;
   final Map<String, DateTime> _entryTimes = {};
@@ -30,6 +25,7 @@ class LocationProvider with ChangeNotifier {
   bool get initialized => _currentLocation != null;
   bool get hasPermission => _acceptedPermission;
   Location? get currentLocation => _currentLocation;
+  GeoFence? get currentFence => _currentFence;
   Map<String, Duration> get timeSpent => _durations;
 
   Future<void> init() async {
@@ -58,15 +54,54 @@ class LocationProvider with ChangeNotifier {
 
   Future<void> fetchCurrentLocation() async {
     try {
-      bool serviceEnabled = await location.serviceEnabled();
-      if (!serviceEnabled) {
-        serviceEnabled = await location.requestService();
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          NotificationsHelper().showError(
+            'Location permission denied. Please enable location services.',
+          );
+          return;
+        }
       }
-      _currentLocationData =
-          await location.getLocation().timeout(const Duration(seconds: 6));
-      _currentLocation = await _getUserLocation();
+
+      final Position pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      _currentLocationData = loc.LocationData.fromMap({
+        'latitude': pos.latitude,
+        'longitude': pos.longitude,
+      });
+
+      _currentLocation = Location(
+        country: '',
+        displayName: '',
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        lastUpdated: DateTime.now(),
+      );
+
+      _checkForCurrentFence();
+      notifyListeners();
     } catch (e) {
       NotificationsHelper().printIfDebugMode('Location fetching failed: $e');
+    }
+  }
+
+  void _checkForCurrentFence() {
+    if (_currentLocationData == null) return;
+
+    for (final fence in predefinedGeoFences) {
+      if (_isInsideFence(_currentLocationData!, fence)) {
+        _onEnterFence(fence);
+        return;
+      }
+    }
+
+    if (_currentFence != null) {
+      _onExitFence();
     }
   }
 
@@ -74,7 +109,6 @@ class LocationProvider with ChangeNotifier {
 
   Future<Location?> _getUserLocation() async {
     final locationPlaceMark = await _getLocationPlaceMark();
-
     if (locationPlaceMark == null) return null;
 
     return Location(
@@ -89,6 +123,7 @@ class LocationProvider with ChangeNotifier {
   Future<geocoding.Placemark?> _getLocationPlaceMark() async {
     if (_currentLocationData?.latitude == null ||
         _currentLocationData?.longitude == null) return null;
+
     final List<geocoding.Placemark> placeMarks =
         await geocoding.placemarkFromCoordinates(
       _currentLocationData!.latitude!,
