@@ -132,15 +132,6 @@ DEBUG=true
 
 ---
 
-## Preview
-
-> Add screenshots or GIF here showing:
-> - Map view
-> - Summary screen
-> - Bottom navigation
-
----
-
 ## Author
 
 Fabio Calderón — *Software Engineer & Mobile Enthusiast*
