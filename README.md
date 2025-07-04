@@ -16,7 +16,7 @@
      '---'    \   \   .'  `---'          
                `---`-'                   
 ```
-# Location Tracker App – Zitlac Flutter Test
+# Location Tracker App
 
 This app tracks the user's time spent in predefined geofenced locations (e.g., Home and Office), displaying real-time location on a map and summarizing durations. Built using **Flutter** and follows a clean Provider-based architecture.
 
