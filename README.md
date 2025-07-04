@@ -25,17 +25,27 @@ This app tracks the user's time spent in predefined geofenced locations (e.g., H
 ## Preview
 
 ### Main Screen
-<img src="assets/screenshots/s1.png" alt="Main Screen" width="400"/>
-<img src="assets/screenshots/s5.png" alt="Main Screen 2" width="400"/>
+<p align="center">
+  <img src="assets/screenshots/s1.png" alt="Main Screen" width="400"/>
+</p>
+<p align="center">
+  <img src="assets/screenshots/s5.png" alt="Main Screen 2" width="400"/>
+</p>
 
 ### Clocking In
-<img src="assets/screenshots/s2.png" alt="Clocking In" width="400"/>
+<p align="center">
+  <img src="assets/screenshots/s2.png" alt="Clocking In" width="400"/>
+</p>
 
 ### Clocking Out
-<img src="assets/screenshots/s3.png" alt="Clocking Out" width="400"/>
+<p align="center">
+  <img src="assets/screenshots/s3.png" alt="Clocking Out" width="400"/>
+</p>
 
 ### Summary Screen
-<img src="assets/screenshots/s4.png" alt="Summary Screen" width="400"/>
+<p align="center">
+  <img src="assets/screenshots/s4.png" alt="Summary Screen" width="400"/>
+</p>
 
 ---
 
