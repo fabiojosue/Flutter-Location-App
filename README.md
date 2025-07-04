@@ -69,7 +69,7 @@ lib/
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourname/flutter-location-app.git
+git clone https://github.com/fabiojosue/Flutter-Location-App.git
 cd flutter-location-app
 ```
 
